@@ -11,12 +11,30 @@ serve(async (req) => {
   }
 
   try {
-    const { messages } = await req.json();
+    const { messages, emotionContext } = await req.json();
     
     const AI_API_KEY = Deno.env.get("AI_API_KEY");
     
     if (!AI_API_KEY) {
       throw new Error("AI_API_KEY is not configured");
+    }
+
+    // Create emotion-aware system prompt
+    let systemPrompt = "You are a friendly AI learning assistant for NeuroLearn, an advanced neuroadaptive education platform. Help students learn effectively, answer questions, provide study tips, and motivate them. Keep responses concise and encouraging.";
+    
+    if (emotionContext) {
+      const { facialEmotion, voiceEmotion, engagement, attention } = emotionContext;
+      systemPrompt += `\n\nCurrent student state: Facial emotion: ${facialEmotion}, Voice emotion: ${voiceEmotion || 'unknown'}, Engagement: ${engagement}%, Attention: ${attention}%. `;
+      
+      if (engagement < 60) {
+        systemPrompt += "The student seems distracted or low on energy. Be extra encouraging, break things down simply, and suggest taking breaks if needed.";
+      } else if (facialEmotion === 'sad') {
+        systemPrompt += "The student appears to be struggling emotionally. Be empathetic, supportive, and reassuring. Remind them that challenges are normal.";
+      } else if (facialEmotion === 'happy' && engagement > 75) {
+        systemPrompt += "The student is highly engaged and positive! Match their energy, dive deeper into topics, and challenge them appropriately.";
+      } else if (attention < 70) {
+        systemPrompt += "The student's attention is wavering. Keep responses brief and focused. Suggest interactive activities.";
+      }
     }
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -30,7 +48,7 @@ serve(async (req) => {
         messages: [
           { 
             role: "system", 
-            content: "You are a friendly AI learning assistant for NeuroLearn, an advanced neuroadaptive education platform. Help students learn effectively, answer questions, provide study tips, and motivate them. Keep responses concise and encouraging." 
+            content: systemPrompt 
           },
           ...messages,
         ],

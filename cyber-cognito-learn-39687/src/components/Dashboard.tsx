@@ -26,6 +26,15 @@ export const Dashboard = () => {
   const handleMicEmotionChange = (emotion: string | null) => {
     setVoiceEmotion(emotion);
   };
+  
+  // Shared emotion context for AI
+  const emotionContext = {
+    facialEmotion,
+    voiceEmotion,
+    engagement,
+    attention
+  };
+  
   return (
     <section id="dashboard" className="py-20 px-6">
       <div className="container mx-auto">
@@ -92,7 +101,7 @@ export const Dashboard = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          <AIChat />
+          <AIChat emotionContext={emotionContext} />
           <BrainGames />
         </div>
       </div>

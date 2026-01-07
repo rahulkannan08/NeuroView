@@ -122,29 +122,48 @@ export const RobotAssistant = ({ facialEmotion, voiceEmotion, engagement, attent
   };
 
   const speak = (text: string) => {
-    if (!voiceEnabled || !window.speechSynthesis) return;
+    if (!voiceEnabled) return;
     
-    // Cancel any ongoing speech
-    window.speechSynthesis.cancel();
-    
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 1.1;
-    utterance.pitch = 1.2;
-    utterance.volume = 0.9;
-    
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => {
+    try {
+      if (!window.speechSynthesis) {
+        console.warn('Speech synthesis not supported');
+        return;
+      }
+      
+      // Cancel any ongoing speech
+      window.speechSynthesis.cancel();
+      
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1.1;
+      utterance.pitch = 1.2;
+      utterance.volume = 0.9;
+      
+      utterance.onstart = () => setIsSpeaking(true);
+      utterance.onend = () => setIsSpeaking(false);
+      utterance.onerror = (event) => {
+        setIsSpeaking(false);
+        console.warn('Speech synthesis error:', event.error);
+        // Don't show error toast for common issues
+        if (event.error !== 'canceled' && event.error !== 'interrupted') {
+          console.log('Speech error (non-critical):', event.error);
+        }
+      };
+      
+      speechSynthRef.current = utterance;
+      
+      // Wait for voices to load
+      const voices = window.speechSynthesis.getVoices();
+      if (voices.length === 0) {
+        window.speechSynthesis.addEventListener('voiceschanged', () => {
+          window.speechSynthesis.speak(utterance);
+        }, { once: true });
+      } else {
+        window.speechSynthesis.speak(utterance);
+      }
+    } catch (error) {
+      console.warn('Speech synthesis failed:', error);
       setIsSpeaking(false);
-      toast({
-        title: "Speech Error",
-        description: "Unable to speak. Check browser support.",
-        variant: "destructive"
-      });
-    };
-    
-    speechSynthRef.current = utterance;
-    window.speechSynthesis.speak(utterance);
+    }
   };
 
   useEffect(() => {

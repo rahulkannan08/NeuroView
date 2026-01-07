@@ -7,7 +7,18 @@ import { useToast } from "@/hooks/use-toast";
 
 type Message = { role: "user" | "assistant"; content: string };
 
-export const AIChat = () => {
+interface EmotionContext {
+  facialEmotion: string;
+  voiceEmotion: string | null;
+  engagement: number;
+  attention: number;
+}
+
+interface AIChatProps {
+  emotionContext?: EmotionContext;
+}
+
+export const AIChat = ({ emotionContext }: AIChatProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -81,67 +92,85 @@ export const AIChat = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-          body: JSON.stringify({ messages: [...messages, userMessage] }),
+      // Create emotion-aware system prompt
+      const emotionPrompt = emotionContext ? 
+        `User's current state: Facial emotion: ${emotionContext.facialEmotion}, Voice emotion: ${emotionContext.voiceEmotion || 'unknown'}, Engagement: ${emotionContext.engagement}%, Attention: ${emotionContext.attention}%. Respond empathetically based on their emotional state.` 
+        : '';
+
+      // Try Supabase edge function first
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            },
+            body: JSON.stringify({ 
+              messages: [...messages, userMessage],
+              emotionContext: emotionContext 
+            }),
+          }
+        );
+
+        if (!response.ok || !response.body) {
+          throw new Error("Failed to get response");
         }
-      );
 
-      if (!response.ok || !response.body) {
-        throw new Error("Failed to get response");
-      }
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let assistantContent = "";
+        let textBuffer = "";
 
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let assistantContent = "";
-      let textBuffer = "";
+        setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
 
-      setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+          textBuffer += decoder.decode(value, { stream: true });
 
-        textBuffer += decoder.decode(value, { stream: true });
+          let newlineIndex: number;
+          while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
+            let line = textBuffer.slice(0, newlineIndex);
+            textBuffer = textBuffer.slice(newlineIndex + 1);
 
-        let newlineIndex: number;
-        while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
-          let line = textBuffer.slice(0, newlineIndex);
-          textBuffer = textBuffer.slice(newlineIndex + 1);
+            if (line.endsWith("\r")) line = line.slice(0, -1);
+            if (line.startsWith(":") || line.trim() === "") continue;
+            if (!line.startsWith("data: ")) continue;
 
-          if (line.endsWith("\r")) line = line.slice(0, -1);
-          if (line.startsWith(":") || line.trim() === "") continue;
-          if (!line.startsWith("data: ")) continue;
+            const jsonStr = line.slice(6).trim();
+            if (jsonStr === "[DONE]") break;
 
-          const jsonStr = line.slice(6).trim();
-          if (jsonStr === "[DONE]") break;
-
-          try {
-            const parsed = JSON.parse(jsonStr);
-            const content = parsed.choices?.[0]?.delta?.content;
-            if (content) {
-              assistantContent += content;
-              setMessages((prev) => {
-                const newMessages = [...prev];
-                newMessages[newMessages.length - 1].content = assistantContent;
-                return newMessages;
-              });
+            try {
+              const parsed = JSON.parse(jsonStr);
+              const content = parsed.choices?.[0]?.delta?.content;
+              if (content) {
+                assistantContent += content;
+                setMessages((prev) => {
+                  const newMessages = [...prev];
+                  newMessages[newMessages.length - 1].content = assistantContent;
+                  return newMessages;
+                });
+              }
+            } catch {
+              continue;
             }
-          } catch {
-            continue;
           }
         }
-      }
 
-      // Speak the response
-      if (assistantContent) {
-        speak(assistantContent);
+        // Speak the response
+        if (assistantContent) {
+          speak(assistantContent);
+        }
+      } catch (error) {
+        // Fallback to local emotion-aware AI
+        console.log('Using local AI fallback');
+        const aiResponse = generateEmotionAwareResponse(userMessage.content, emotionContext);
+        
+        setMessages((prev) => [...prev, { role: "assistant", content: aiResponse }]);
+        speak(aiResponse);
       }
     } catch (error) {
       console.error("Error:", error);
@@ -154,6 +183,70 @@ export const AIChat = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Local emotion-aware AI response generator
+  const generateEmotionAwareResponse = (userInput: string, context?: EmotionContext): string => {
+    const lowerInput = userInput.toLowerCase();
+    
+    // Emotion-based responses
+    if (context) {
+      const { facialEmotion, engagement, attention } = context;
+      
+      // Low engagement responses
+      if (engagement < 60) {
+        const lowEngagementResponses = [
+          "I notice your energy might be low. Let's take this step by step! What specific topic would you like to explore?",
+          "It's okay to feel distracted sometimes. Let's break this down into smaller, manageable pieces. What's the first thing you'd like to understand?",
+          "I'm here to help make this easier for you. How about we start with the basics and build from there?",
+        ];
+        return lowEngagementResponses[Math.floor(Math.random() * lowEngagementResponses.length)];
+      }
+      
+      // Sad emotion responses
+      if (facialEmotion === 'sad') {
+        const sadResponses = [
+          "I can sense this might be challenging for you. Remember, every expert was once a beginner. What would help you feel more confident?",
+          "It's completely normal to feel overwhelmed sometimes. You're doing great by reaching out! Let's tackle this together. What's on your mind?",
+          "I'm here to support you! Learning can be tough, but you're making progress. How can I help you right now?",
+        ];
+        return sadResponses[Math.floor(Math.random() * sadResponses.length)];
+      }
+      
+      // Happy/High engagement responses
+      if (facialEmotion === 'happy' && engagement > 75) {
+        const happyResponses = [
+          "Your positive energy is amazing! You're really in the zone. Let's keep this momentum going! What would you like to learn next?",
+          "I love your enthusiasm! You're doing fantastic. What aspect of this topic interests you most?",
+          "Great energy! You're on fire today! Let's dive deeper into something exciting. What catches your interest?",
+        ];
+        return happyResponses[Math.floor(Math.random() * happyResponses.length)];
+      }
+    }
+    
+    // Topic-specific responses
+    if (lowerInput.includes('help') || lowerInput.includes('how')) {
+      return "I'm here to help! I can assist with: \n• Explaining concepts\n• Study strategies\n• Breaking down complex topics\n• Motivation and encouragement\n\nWhat specifically would you like help with?";
+    }
+    
+    if (lowerInput.includes('math') || lowerInput.includes('calculate')) {
+      return "Math is all about practice and understanding patterns! I can help you with:\n• Step-by-step problem solving\n• Concept explanations\n• Practice strategies\n\nWhat math topic are you working on?";
+    }
+    
+    if (lowerInput.includes('science')) {
+      return "Science is fascinating! Whether it's physics, chemistry, or biology, I'm here to make it clearer. What scientific concept would you like to explore?";
+    }
+    
+    if (lowerInput.includes('study') || lowerInput.includes('learn')) {
+      return "Great question about studying! Effective learning strategies include:\n• Active recall and practice\n• Spaced repetition\n• Breaking topics into chunks\n• Regular breaks\n\nWhat subject are you studying?";
+    }
+    
+    if (lowerInput.includes('thanks') || lowerInput.includes('thank you')) {
+      return "You're very welcome! I'm always here to help you succeed. Keep up the great work! 🌟";
+    }
+    
+    // Default response
+    return "That's an interesting question! I'm here to help you learn and grow. Could you tell me more about what you're trying to understand, or what subject you're working on? The more details you share, the better I can assist you!";
   };
 
   return (

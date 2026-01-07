@@ -1,0 +1,50 @@
+.eeg-simulator{padding:20px;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.3);color:#fff;font-family:Arial,Helvetica,sans-serif;max-width:1200px;margin:0 auto}
+.header-row{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px}
+.eeg-title{margin:0;font-size:24px;letter-spacing:.3px}
+.header-actions{display:flex;align-items:center;gap:10px}
+.btn{border:0;border-radius:8px;padding:10px 14px;cursor:pointer;font-weight:600}
+.btn.primary{background:linear-gradient(135deg,#4ECDC4,#44A08D);color:#0b1b2e}
+.btn.subtle{background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.12)}
+.consent-pill{padding:6px 10px;border-radius:999px;font-size:12px;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.25)}
+.consent-pill[data-state="unset"]{background:rgba(255,217,61,.15);color:#FFD93D;border-color:rgba(255,217,61,.35)}
+.consent-pill[data-state="declined"]{background:rgba(255,107,107,.15);color:#ff9b9b;border-color:rgba(255,107,107,.35)}
+.controls{display:flex;flex-wrap:wrap;gap:16px;margin:12px 0 18px}
+.control-group{display:flex;flex-direction:column;gap:8px;min-width:220px}
+.segmented{display:inline-flex;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:10px;overflow:hidden}
+.segmented>button{padding:8px 12px;background:transparent;color:#fff;border:0}
+.segmented>button.active{background:rgba(78,205,196,.2)}
+.upload-row{display:flex;align-items:center;gap:10px}
+.upload-status{font-size:12px;color:rgba(255,255,255,.8)}
+.panels{display:grid;grid-template-columns:1.2fr .8fr;gap:16px}
+.panel{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:14px}
+.waves .wave{margin-bottom:16px}
+.wave h3{margin:0 0 6px 0;font-size:14px;color:#dfe7fd;letter-spacing:.4px}
+.waveform{position:relative;border-radius:10px;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+.waveform-canvas{width:100%;height:120px;display:block;background:#101828}
+.waveform-value{position:absolute;top:8px;right:10px;font-weight:700;padding:6px 10px;background:rgba(0,0,0,.55);border-radius:999px}
+.feedback-card{border-radius:14px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.35);box-shadow:0 8px 26px rgba(0,0,0,.35)}
+.feedback-header{display:flex;align-items:center;gap:10px;padding:12px;border-bottom:1px solid rgba(255,255,255,.08)}
+.state-dot{width:10px;height:10px;border-radius:50%;box-shadow:0 0 10px rgba(255,255,255,.35)}
+.state-text{display:flex;flex-direction:column}
+.state-label{font-weight:800;letter-spacing:.3px}
+.state-sub{opacity:.7;font-size:12px}
+.feedback-body{padding:12px 12px 14px}
+.feedback-title{margin:0 0 6px 0}
+.feedback-message{margin:0 0 8px 0;opacity:.9}
+.feedback-tips{margin:0;padding-left:18px;display:grid;gap:6px}
+.tone-success{border-color:rgba(46,204,113,.4);box-shadow:0 0 0 1px rgba(46,204,113,.08) inset}
+.tone-warning{border-color:rgba(247,108,108,.35)}
+.tone-info{border-color:rgba(78,205,196,.35)}
+.eeg-info{margin-top:12px;padding:12px;border-left:3px solid #4ECDC4;background:rgba(255,255,255,.04);border-radius:10px}
+
+/* Privacy modal */
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:50}
+.modal{width:min(720px,92vw);border-radius:14px;border:1px solid rgba(255,255,255,.12);background:linear-gradient(180deg,rgba(16,24,40,.96),rgba(16,24,40,.92));box-shadow:0 20px 60px rgba(0,0,0,.45);color:#fff}
+.modal-header{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.08)}
+.modal-title{margin:0;font-size:18px}
+.modal-body{padding:14px 16px;display:grid;gap:10px}
+.modal-actions{display:flex;justify-content:flex-end;gap:10px;padding:12px 16px;border-top:1px solid rgba(255,255,255,.08)}
+.notice{font-size:13px;opacity:.9}
+.notice ul{margin:0 0 0 18px;padding:0;display:grid;gap:6px}
+
+@media (max-width: 900px){.panels{grid-template-columns:1fr}.waveform-canvas{height:100px}}

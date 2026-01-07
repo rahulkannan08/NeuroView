@@ -35,71 +35,93 @@ export const useEmotionSpeech = ({ enabled, emotion, engagement, attention }: Em
     speechTimeoutRef.current = window.setTimeout(() => {
       if (!synthRef.current) return;
 
-      // Cancel any ongoing speech
-      synthRef.current.cancel();
+      try {
+        // Cancel any ongoing speech
+        synthRef.current.cancel();
 
-      const emotionMessages: Record<string, string[]> = {
-        happy: [
-          `You're looking happy! Your engagement is at ${engagement}%`,
-          `Great vibes! I can see you're feeling happy`,
-          `Wonderful! Your positive energy shows ${engagement}% engagement`,
-        ],
-        sad: [
-          `I notice you seem sad. Would you like to talk?`,
-          `Your attention is at ${attention}%. Everything okay?`,
-          `I'm here if you need support. You seem a bit down`,
-        ],
-        angry: [
-          `I sense some frustration. Take a deep breath`,
-          `Your intensity is high at ${engagement}%. Want to cool down?`,
-          `I notice strong emotions. Let's work through this`,
-        ],
-        neutral: [
-          `You're in a calm, neutral state`,
-          `Balanced mood detected. Engagement at ${engagement}%`,
-          `Nice and steady. You're focused`,
-        ],
-        surprised: [
-          `Oh! You look surprised! Engagement spiked to ${engagement}%`,
-          `Something caught your attention!`,
-          `Wow, that's unexpected! High attention at ${attention}%`,
-        ],
-        fearful: [
-          `I sense some concern. Everything alright?`,
-          `You seem worried. I'm here to help`,
-          `Take it easy. Your attention is at ${attention}%`,
-        ],
-      };
+        const emotionMessages: Record<string, string[]> = {
+          happy: [
+            `You're looking happy! Your engagement is at ${engagement}%`,
+            `Great vibes! I can see you're feeling happy`,
+            `Wonderful! Your positive energy shows ${engagement}% engagement`,
+          ],
+          sad: [
+            `I notice you seem sad. Would you like to talk?`,
+            `Your attention is at ${attention}%. Everything okay?`,
+            `I'm here if you need support. You seem a bit down`,
+          ],
+          angry: [
+            `I sense some frustration. Take a deep breath`,
+            `Your intensity is high at ${engagement}%. Want to cool down?`,
+            `I notice strong emotions. Let's work through this`,
+          ],
+          neutral: [
+            `You're in a calm, neutral state`,
+            `Balanced mood detected. Engagement at ${engagement}%`,
+            `Nice and steady. You're focused`,
+          ],
+          surprised: [
+            `Oh! You look surprised! Engagement spiked to ${engagement}%`,
+            `Something caught your attention!`,
+            `Wow, that's unexpected! High attention at ${attention}%`,
+          ],
+          fearful: [
+            `I sense some concern. Everything alright?`,
+            `You seem worried. I'm here to help`,
+            `Take it easy. Your attention is at ${attention}%`,
+          ],
+        };
 
-      const messages = emotionMessages[emotion.toLowerCase()] || [`I detected ${emotion} emotion`];
-      const message = messages[Math.floor(Math.random() * messages.length)];
+        const messages = emotionMessages[emotion.toLowerCase()] || [`I detected ${emotion} emotion`];
+        const message = messages[Math.floor(Math.random() * messages.length)];
 
-      const utterance = new SpeechSynthesisUtterance(message);
-      utterance.rate = 1.0;
-      utterance.pitch = 1.0;
-      utterance.volume = 0.8;
+        const utterance = new SpeechSynthesisUtterance(message);
+        utterance.rate = 1.0;
+        utterance.pitch = 1.0;
+        utterance.volume = 0.8;
 
-      // Adjust voice characteristics based on emotion
-      switch (emotion.toLowerCase()) {
-        case 'happy':
-          utterance.pitch = 1.2;
-          utterance.rate = 1.1;
-          break;
-        case 'sad':
-          utterance.pitch = 0.8;
-          utterance.rate = 0.9;
-          break;
-        case 'angry':
-          utterance.pitch = 0.9;
-          utterance.rate = 1.2;
-          break;
-        case 'excited':
-          utterance.pitch = 1.3;
-          utterance.rate = 1.3;
-          break;
+        // Error handling for speech synthesis
+        utterance.onerror = (event) => {
+          console.warn('Speech synthesis error:', event.error);
+        };
+
+        utterance.onend = () => {
+          console.log('Speech completed successfully');
+        };
+
+        // Adjust voice characteristics based on emotion
+        switch (emotion.toLowerCase()) {
+          case 'happy':
+            utterance.pitch = 1.2;
+            utterance.rate = 1.1;
+            break;
+          case 'sad':
+            utterance.pitch = 0.8;
+            utterance.rate = 0.9;
+            break;
+          case 'angry':
+            utterance.pitch = 0.9;
+            utterance.rate = 1.2;
+            break;
+          case 'excited':
+            utterance.pitch = 1.3;
+            utterance.rate = 1.3;
+            break;
+        }
+
+        // Wait for voices to load before speaking
+        if (synthRef.current.getVoices().length === 0) {
+          window.speechSynthesis.addEventListener('voiceschanged', () => {
+            if (synthRef.current) {
+              synthRef.current.speak(utterance);
+            }
+          }, { once: true });
+        } else {
+          synthRef.current.speak(utterance);
+        }
+      } catch (error) {
+        console.error('Speech synthesis error:', error);
       }
-
-      synthRef.current.speak(utterance);
     }, 3000); // Wait 3 seconds before speaking to avoid spam
 
     return () => {
